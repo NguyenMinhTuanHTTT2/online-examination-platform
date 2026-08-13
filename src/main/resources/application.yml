@@ -1,0 +1,106 @@
+spring:
+  application:
+    name: online-examination-platform
+
+  # -------------------------------------------------------------------
+  # Database Configuration (MySQL & HikariCP)
+  # -------------------------------------------------------------------
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.2:3306/online_exam?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD}
+
+    # HikariCP Connection Pool Tuning
+    hikari:
+      maximum-pool-size: 15
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      pool-name: ExamPlatformHikariCP
+
+  # -------------------------------------------------------------------
+  # JPA & Hibernate Configuration
+  # -------------------------------------------------------------------
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: update
+
+    show-sql: true
+
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 30
+        order_inserts: true
+        order_updates: true
+
+  # -------------------------------------------------------------------
+  # Jackson (JSON Formatting)
+  # -------------------------------------------------------------------
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: UTC
+
+    serialization:
+      fail-on-empty-beans: false
+
+    deserialization:
+      fail-on-unknown-properties: false
+
+  # -------------------------------------------------------------------
+  # Redis Configuration
+  # -------------------------------------------------------------------
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+
+# -------------------------------------------------------------------
+# Server Settings
+# -------------------------------------------------------------------
+server:
+  port: 8080
+  servlet:
+    context-path: /api/v1
+  error:
+    include-message: always
+
+# -------------------------------------------------------------------
+# Application Custom Properties (JWT)
+# -------------------------------------------------------------------
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-ms: 86400000
+
+    refresh-token:
+      expiration-ms: 604800000
+
+# -------------------------------------------------------------------
+# OpenAPI / Swagger UI
+# -------------------------------------------------------------------
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+# -------------------------------------------------------------------
+# Logging Configuration
+# -------------------------------------------------------------------
+logging:
+  level:
+    root: INFO
+    com.tuan.exam: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
