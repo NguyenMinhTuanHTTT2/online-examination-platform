@@ -24,6 +24,11 @@ public class QuizSettings {
     @Column(name = "duration_minutes", nullable = false)
     private Integer durationMinutes;
 
+    // Bổ sung thêm trường độ khó ở đây (có thể dùng String hoặc Enum nếu bạn muốn chặt chẽ)
+    @Column(name = "difficulty", length = 50)
+    @Builder.Default
+    private String difficulty = "Trung bình";
+
     @Column(name = "pass_score_percentage")
     @Builder.Default
     private Integer passScorePercentage = 50;

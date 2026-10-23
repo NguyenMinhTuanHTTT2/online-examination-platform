@@ -4,6 +4,7 @@ import com.tuan.exam.entity.enums.AttemptStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,10 +38,10 @@ public class QuizAttempt {
     private Integer attemptNumber = 1;
 
     @Column(name = "start_time", nullable = false, updatable = false)
-    private LocalDateTime startTime;
+    private Instant startTime;
 
     @Column(name = "submit_time")
-    private LocalDateTime submitTime;
+    private Instant submitTime;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
@@ -67,6 +68,10 @@ public class QuizAttempt {
 
     @PrePersist
     protected void onCreate() {
-        this.startTime = LocalDateTime.now();
+        this.startTime = Instant.now();
     }
+
+    @OneToMany(mappedBy = "attempt", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<AttemptQuestion> attemptQuestions = new ArrayList<>();
 }

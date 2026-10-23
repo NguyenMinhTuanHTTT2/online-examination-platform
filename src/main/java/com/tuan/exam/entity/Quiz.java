@@ -41,6 +41,10 @@ public class Quiz extends BaseEntity  {
     @Builder.Default
     private QuizStatus status = QuizStatus.DRAFT;
 
+    @Column(name = "quiz_type", length = 30)
+    @Builder.Default
+    private String quizType = "MOCK_TEST";
+
     @Column(name = "total_questions")
     @Builder.Default
     private Integer totalQuestions = 0;
@@ -55,4 +59,15 @@ public class Quiz extends BaseEntity  {
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Question> questions = new ArrayList<>();
+
+    @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<QuizRule> rules = new ArrayList<>();
+
+    @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<QuizAttempt> attempts = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subject_id")
+    private Subject subject;
 }

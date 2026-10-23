@@ -12,12 +12,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
+@CrossOrigin(origins = "*")
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
@@ -33,6 +32,22 @@ public class AuthController {
     public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest registerRequest) {
         String response = authService.register(registerRequest);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    // 🔴 ENDPOINT LẤY THÔNG TIN USER ĐANG ĐĂNG NHẬP ĐỘNG TỪ CSDL
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Chưa đăng nhập hoặc Token không hợp lệ");
+        }
+
+        // authentication.getName() sẽ trả về username hoặc email được mã hóa trong JWT
+        String usernameOrEmail = authentication.getName();
+
+        // Gọi AuthService để truy vấn thông tin User từ Database
+        Object userProfile = authService.getCurrentUserProfile(usernameOrEmail);
+
+        return ResponseEntity.ok(userProfile);
     }
 
 }

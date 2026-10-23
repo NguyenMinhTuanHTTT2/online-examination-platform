@@ -8,7 +8,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -21,6 +24,7 @@ public class QuizTimeoutScheduler {
 
     // Chạy mỗi 1 phút một lần
     @Scheduled(cron = "0 * * * * *")
+    @Transactional
     public void scanAndSubmitExpiredAttempts() {
         log.info("Running CronJob: Quét các bài thi quá hạn...");
 
@@ -28,12 +32,22 @@ public class QuizTimeoutScheduler {
         List<QuizAttempt> inProgressAttempts = attemptRepository.findByStatus(AttemptStatus.IN_PROGRESS);
 
         for (QuizAttempt attempt : inProgressAttempts) {
+            // Kiểm tra an toàn nếu quiz hoặc settings bị null
+
+            if (attempt.getQuiz() == null || attempt.getQuiz().getSettings() == null) continue;
             Integer duration = attempt.getQuiz().getSettings().getDurationMinutes();
             if (duration == null || duration == 0) continue;
 
-            LocalDateTime deadline = attempt.getStartTime().plusMinutes(duration).plusMinutes(1); // Thêm 1 phút du di
+            Instant deadline = attempt.getStartTime()
+                    .plus(Duration.ofMillis(duration))
+                    .plusSeconds(60);// Thêm 1 phút du di
 
-            if (LocalDateTime.now().isAfter(deadline)) {
+            if (Instant.now().isAfter(deadline)) {
+                // Đánh dấu nhanh trạng thái sang SUBMITTED hoặc một trạng thái tạm NGAY LẬP TỨC
+                // để vòng lặp sau hoặc cronjob khác không quét trùng nữa
+                attempt.setStatus(AttemptStatus.SUBMITTED);
+                attempt.setIsForceSubmitted(true);
+                attemptRepository.save(attempt); // Khóa ngay lập tức ở DB
                 log.info("Phát hiện lượt thi {} đã hết giờ. Đang tự động nộp bài...", attempt.getId());
                 try {
                     // Cờ hiệu hệ thống thu bài

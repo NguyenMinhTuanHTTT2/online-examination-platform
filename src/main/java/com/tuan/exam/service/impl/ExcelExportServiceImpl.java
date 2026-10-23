@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -74,10 +75,17 @@ public class ExcelExportServiceImpl implements ExcelExportService {
                 row.createCell(2).setCellValue(attempt.getUser().getFullName()); // Giả định User có trường fullName
 
                 // Format thời gian
-                String startTimeStr = attempt.getStartTime() != null ? attempt.getStartTime().format(dateFormatter) : "";
-                String submitTimeStr = attempt.getSubmitTime() != null ? attempt.getSubmitTime().format(dateFormatter) : "";
-                row.createCell(3).setCellValue(startTimeStr);
-                row.createCell(4).setCellValue(submitTimeStr);
+               // String startTimeStr = attempt.getStartTime() != null ? attempt.getStartTime().format(dateFormatter) : "";
+              //  String submitTimeStr = attempt.getSubmitTime() != null ? attempt.getSubmitTime().format(dateFormatter) : "";
+              //  row.createCell(3).setCellValue(startTimeStr);
+              //  row.createCell(4).setCellValue(submitTimeStr);
+                String startTimeStr = attempt.getStartTime() != null
+                        ? dateFormatter.format(LocalDateTime.ofInstant(attempt.getStartTime(), java.time.ZoneId.systemDefault()))
+                        : "";
+
+                String submitTimeStr = attempt.getSubmitTime() != null
+                        ? dateFormatter.format(LocalDateTime.ofInstant(attempt.getSubmitTime(), java.time.ZoneId.systemDefault()))
+                        : "";
 
                 // Điểm số và %
                 double score = attempt.getScore();

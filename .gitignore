@@ -49,3 +49,6 @@ Thumbs.db
 *.tmp
 *.temp
 *.swp
+
+# Separate Front-end repository
+/frontend-exam/

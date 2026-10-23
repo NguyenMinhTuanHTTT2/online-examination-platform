@@ -3,11 +3,13 @@ package com.tuan.exam.dto.response;
 import com.tuan.exam.dto.QuizSettingsDto;
 import com.tuan.exam.entity.enums.QuizStatus;
 import lombok.Builder;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
 
+@Data
 @Getter
 @Setter
 @Builder
@@ -17,6 +19,7 @@ public class QuizResponse {
     private String description;       // Mô tả chi tiết về nội dung hoặc quy định của bài quiz
     private String code;              // Mã code dùng để tham gia bài quiz (nếu có)
     private QuizStatus status;        // Trạng thái hiện tại của bài quiz (VD: Nháp, Đang mở, Đã đóng...)
+    private String quizType;
     private Integer totalQuestions;   // Tổng số câu hỏi có trong bài quiz
     private Integer totalMarks;       // Tổng số điểm tối đa của toàn bộ bài quiz
     private String creatorName;       // Họ tên hoặc username của người tạo ra bài quiz này

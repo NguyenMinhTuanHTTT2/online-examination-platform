@@ -4,12 +4,13 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-
+@Data
 public class RegisterRequest {
     @NotBlank(message = "Tên đăng nhập không được để trống")
     @Size(min = 4 , max = 50, message = "Tên đăng nhập phải 4 đến 50 ký tự")

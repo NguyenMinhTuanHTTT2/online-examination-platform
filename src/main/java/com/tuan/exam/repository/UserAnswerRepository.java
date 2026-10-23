@@ -14,6 +14,6 @@ public interface UserAnswerRepository extends JpaRepository<UserAnswer, Long> {
     Optional<UserAnswer> findByAttemptIdAndQuestionId(Long attemptId, Long questionId);
 
     // Kéo toàn bộ bài làm của lượt thi kèm theo thông tin câu hỏi để chấm điểm
-    @EntityGraph(attributePaths = {"question", "selectedAnswer"})
+    @EntityGraph(attributePaths = {"question", "selectedOption"})
     List<UserAnswer> findByAttemptId(Long attemptId);
 }

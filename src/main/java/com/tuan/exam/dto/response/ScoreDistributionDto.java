@@ -2,6 +2,7 @@ package com.tuan.exam.dto.response;
 
 import lombok.*;
 
+@Data
 @Getter
 @Setter
 @Builder

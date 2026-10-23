@@ -1,14 +1,15 @@
 package com.tuan.exam.dto;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
+@Data
 @Getter
 @Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class QuizSettingsDto {
     private Integer durationMinutes;       // Thời gian làm bài (tính bằng phút)
     private Integer passScorePercentage;   // Tỷ lệ phần trăm điểm tối thiểu để đạt (VD: 80%)

@@ -3,7 +3,7 @@ package com.tuan.exam.entity.enums;
 public enum QuizStatus {
     DRAFT("Bản nháp"),
     PUBLISHED("Đã xuất bản"),
-    ARCHIVED("Đã lưu trữ");
+    HIDDEN("Ẩn");
 
     private final String vietnameseName;
 

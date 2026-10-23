@@ -12,7 +12,6 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
 public class UserAnswer {
 
     @Id
@@ -27,9 +26,10 @@ public class UserAnswer {
     @JoinColumn(name = "question_id", nullable = false)
     private Question question;
 
+    // 🛠️ ĐÃ SỬA: Chuyển từ Answer sang Option (Map với cột selected_option_id)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "selected_answer_id")
-    private Answer selectedAnswer;
+    @JoinColumn(name = "selected_option_id")
+    private Option selectedOption;
 
     @Column(name = "essay_answer", columnDefinition = "TEXT")
     private String essayAnswer;

@@ -21,6 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -108,4 +109,40 @@ public class AuthServiceImpl implements AuthService {
             throw e;
         }
     }
+    @Override
+    public Object getCurrentUserProfile(String usernameOrEmail) {
+        // 1. Tìm user trong CSDL theo email hoặc username
+        User user = userRepository.findByEmail(usernameOrEmail)
+                .orElseGet(() -> userRepository.findByUsername(usernameOrEmail)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng: " + usernameOrEmail)));
+
+        // 2. Tạo chữ cái viết tắt cho Avatar (ví dụ: "Nguyễn Minh Anh" -> "MA")
+        String initials = getInitials(user.getFullName());
+
+        // 3. Lấy tên role đầu tiên của user (hoặc xử lý danh sách role tùy ý bạn)
+        String roleName = user.getRoles() != null && !user.getRoles().isEmpty()
+                ? user.getRoles().iterator().next().getName()
+                : "ROLE_STUDENT";
+
+        // 4. Trả về Map hoặc UserDTO chứa thông tin động (Đã loại bỏ grade vì hệ thống thi tự do)
+        return Map.of(
+                "id", user.getId(),
+                "username", user.getUsername(),
+                "fullName", user.getFullName(),
+                "email", user.getEmail(),
+                "phone", user.getPhone() != null ? user.getPhone() : "",
+                "avatar", user.getAvatar() != null ? user.getAvatar() : "",
+                "roleName", roleName,
+                "avatarInitials", initials
+        );
+
+    }
+
+    private String getInitials(String fullName) {
+        if (fullName == null || fullName.trim().isEmpty()) return "U";
+        String[] words = fullName.trim().split("\\s+");
+        if (words.length == 1) return words[0].substring(0, 1).toUpperCase();
+        return (words[words.length - 2].substring(0, 1) + words[words.length - 1].substring(0, 1)).toUpperCase();
+    }
+
 }

@@ -15,6 +15,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.List;
 
 @RestController
 @RequestMapping("/quizzes")
@@ -74,5 +75,20 @@ public class QuizController {
 
         Page<QuizResponse> responses = quizService.getMyQuizzes(principal.getName(), pageable);
         return ResponseEntity.ok(responses);
+    }
+    @GetMapping
+    public ResponseEntity<List<QuizResponse>> getAllPublishedQuizzes() {
+        // Trả về danh sách đề thi có trạng thái PUBLISHED
+        return ResponseEntity.ok(quizService.getPublishedQuizzes());
+    }
+    // Xóa đề thi
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteQuiz(
+            @PathVariable Long id,
+            Principal principal) {
+
+        quizService.deleteQuiz(id, principal.getName());
+        return ResponseEntity.noContent().build();
     }
 }

@@ -3,18 +3,19 @@ package com.tuan.exam.service.impl;
 import com.tuan.exam.dto.request.QuestionRequest;
 import com.tuan.exam.dto.response.AnswerResponse;
 import com.tuan.exam.dto.response.QuestionResponse;
-import com.tuan.exam.entity.Answer;
+import com.tuan.exam.entity.Option;
 import com.tuan.exam.entity.Question;
 import com.tuan.exam.entity.Quiz;
+import com.tuan.exam.entity.Subject;
 import com.tuan.exam.repository.QuestionRepository;
 import com.tuan.exam.repository.QuizRepository;
+import com.tuan.exam.repository.SubjectRepository;
 import com.tuan.exam.service.interfaces.QuestionService;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,37 +24,51 @@ import java.util.stream.Collectors;
 public class QuestionServiceImpl implements QuestionService {
     private final QuestionRepository questionRepository;
     private final QuizRepository quizRepository;
+    private final SubjectRepository subjectRepository;
 
     @Override
     @Transactional
     public QuestionResponse addQuestionToQuiz(Long quizId, QuestionRequest request, String username) {
         Quiz quiz = getQuizAndCheckOwnership(quizId, username);
 
-        // 1. Khởi tạo câu hỏi
+        if (request.getDifficulty() == null) {
+            throw new RuntimeException("Lỗi: Thuộc tính difficulty truyền vào bị NULL hoặc sai định dạng Enum!");
+        }
+
+        if (request.getSubjectId() == null) {
+            throw new RuntimeException("Lỗi: Thuộc tính subjectId truyền vào bị NULL!");
+        }
+
+        Subject subject = subjectRepository.findById(request.getSubjectId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy môn học với ID: " + request.getSubjectId()));
+
         Question question = Question.builder()
                 .quiz(quiz)
+                .subject(subject)
                 .content(request.getContent())
-                .type(request.getType())
-                .scoreWeight(request.getScoreWeight())
+                .questionType(request.getQuestionType())
+                .difficulty(request.getDifficulty())
+                .scoreWeight((int) 0.0) // Tạm thời để 0, sẽ được chuẩn hóa lại ngay sau đó
                 .explanation(request.getExplanation())
+                .options(new ArrayList<>())
                 .build();
 
-        // 2. Map đáp án (và liên kết chiều Answer -> Question)
+        // Lưu các lựa chọn A, B, C, D vào Option
         if (request.getAnswers() != null) {
-            List<Answer> answers = request.getAnswers().stream().map(a -> Answer.builder()
-                    .question(question) // Bắt buộc set để lưu khóa ngoại
+            List<Option> options = request.getAnswers().stream().map(a -> Option.builder()
+                    .question(question)
                     .content(a.getContent())
                     .isCorrect(a.getIsCorrect())
                     .build()).collect(Collectors.toList());
-            question.getAnswers().addAll(answers);
+            question.getOptions().addAll(options);
         }
 
-        // 3. Cập nhật lại tổng số câu và tổng điểm của Quiz
-        quiz.setTotalQuestions(quiz.getTotalQuestions() + 1);
-        quiz.setTotalMarks(quiz.getTotalMarks() + request.getScoreWeight());
-        quizRepository.save(quiz); // JPA tự động lưu Question & Answers vì CascadeType.ALL
-
+        // Lưu câu hỏi mới trước để nó xuất hiện trong cơ sở dữ liệu
         Question savedQuestion = questionRepository.save(question);
+
+        // TỰ ĐỘNG CHUẨN HÓA LẠI ĐIỂM SỐ TRÊN THANG 10 CHO TOÀN BỘ ĐỀ THI
+        normalizeQuizScores(quiz);
+
         return mapToResponse(savedQuestion);
     }
 
@@ -69,28 +84,32 @@ public class QuestionServiceImpl implements QuestionService {
             throw new RuntimeException("Câu hỏi này không thuộc đề thi đã chọn");
         }
 
-        // Trừ điểm cũ, cộng điểm mới cho Quiz
-        quiz.setTotalMarks(quiz.getTotalMarks() - question.getScoreWeight() + request.getScoreWeight());
-
-        // Cập nhật câu hỏi
         question.setContent(request.getContent());
-        question.setType(request.getType());
-        question.setScoreWeight(request.getScoreWeight());
+        question.setQuestionType(request.getQuestionType());
+        question.setDifficulty(request.getDifficulty());
         question.setExplanation(request.getExplanation());
 
-        // Xóa đáp án cũ và thêm đáp án mới (orphanRemoval = true sẽ xóa trong DB)
-        question.getAnswers().clear();
+        if (question.getOptions() == null) {
+            question.setOptions(new ArrayList<>());
+        } else {
+            question.getOptions().clear();
+        }
+
         if (request.getAnswers() != null) {
-            List<Answer> newAnswers = request.getAnswers().stream().map(a -> Answer.builder()
+            List<Option> newOptions = request.getAnswers().stream().map(a -> Option.builder()
                     .question(question)
                     .content(a.getContent())
                     .isCorrect(a.getIsCorrect())
                     .build()).collect(Collectors.toList());
-            question.getAnswers().addAll(newAnswers);
+            question.getOptions().addAll(newOptions);
         }
 
-        quizRepository.save(quiz); // Lưu thay đổi của Quiz tổng
-        return mapToResponse(questionRepository.save(question));
+        Question updatedQuestion = questionRepository.save(question);
+
+        // Chuẩn hóa lại điểm số (đảm bảo tổng vẫn là 10 sau khi cập nhật nếu số lượng câu thay đổi)
+        normalizeQuizScores(quiz);
+
+        return mapToResponse(updatedQuestion);
     }
 
     @Override
@@ -105,25 +124,44 @@ public class QuestionServiceImpl implements QuestionService {
             throw new RuntimeException("Câu hỏi này không thuộc đề thi đã chọn");
         }
 
-        // Trừ số lượng câu và tổng điểm
-        quiz.setTotalQuestions(quiz.getTotalQuestions() - 1);
-        quiz.setTotalMarks(quiz.getTotalMarks() - question.getScoreWeight());
-        quizRepository.save(quiz);
+        questionRepository.delete(question);
 
-        questionRepository.delete(question); // orphanRemoval tự xóa luôn các Answer liên quan
+        // TỰ ĐỘNG CHUẨN HÓA LẠI ĐIỂM SỐ KHI XÓA CÂU HỎI
+        normalizeQuizScores(quiz);
     }
 
     @Override
     public List<QuestionResponse> getQuestionsByQuizId(Long quizId, String username) {
-        // Chỉ giáo viên tạo ra đề thi hoặc người thi (xử lý sau) mới được xem danh sách này (có cả đáp án đúng)
-        // Hiện tại ta check quyền giáo viên
-        getQuizAndCheckOwnership(quizId, username);
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đề thi với ID: " + quizId));
 
         List<Question> questions = questionRepository.findByQuizId(quizId);
         return questions.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
-    // --- Helper Methods ---
+    /**
+     * Phương thức phụ trợ: Tự động chia đều điểm số trên thang điểm 10 cho tất cả câu hỏi trong đề thi
+     */
+    private void normalizeQuizScores(Quiz quiz) {
+        List<Question> questions = questionRepository.findByQuizId(quiz.getId());
+        int totalQuestions = questions.size();
+
+        quiz.setTotalQuestions(totalQuestions);
+
+        if (totalQuestions == 0) {
+            quiz.setTotalMarks((int) 0.0);
+        } else {
+            // Chia đều 10 điểm cho tổng số câu, làm tròn 2 chữ số thập phân
+            double weightPerQuestion = Math.round((10.0 / totalQuestions) * 100.0) / 100.0;
+
+            for (Question q : questions) {
+                q.setScoreWeight((int) weightPerQuestion);
+            }
+            questionRepository.saveAll(questions);
+            quiz.setTotalMarks((int) 10.0); // Tổng điểm của đề luôn cố định là 10
+        }
+        quizRepository.save(quiz);
+    }
 
     private Quiz getQuizAndCheckOwnership(Long quizId, String username) {
         Quiz quiz = quizRepository.findById(quizId)
@@ -132,27 +170,28 @@ public class QuestionServiceImpl implements QuestionService {
         if (!quiz.getCreator().getUsername().equals(username)) {
             throw new RuntimeException("Bạn không có quyền thao tác trên đề thi của người khác");
         }
-        // Có thể thêm rule: Không cho sửa/xóa câu hỏi nếu đề đã PUBLISHED hoặc có người đang thi
         return quiz;
     }
 
     private QuestionResponse mapToResponse(Question question) {
-        List<AnswerResponse> answerResponses = question.getAnswers().stream()
-                .map(a -> AnswerResponse.builder()
-                        .id(a.getId())
-                        .content(a.getContent())
-                        .isCorrect(a.getIsCorrect())
+        List<AnswerResponse> answerResponses = (question.getOptions() != null ? question.getOptions() : new ArrayList<Option>())
+                .stream()
+                .map(o -> AnswerResponse.builder()
+                        .id(o.getId())
+                        .content(o.getContent())
+                        .isCorrect(o.getIsCorrect())
                         .build())
                 .collect(Collectors.toList());
 
         return QuestionResponse.builder()
                 .id(question.getId())
+                .subjectId(question.getSubject() != null ? question.getSubject().getId() : null)
                 .content(question.getContent())
-                .type(question.getType())
+                .type(question.getQuestionType())
+                .difficulty(question.getDifficulty())
                 .scoreWeight(question.getScoreWeight())
                 .explanation(question.getExplanation())
                 .answers(answerResponses)
                 .build();
     }
-
 }

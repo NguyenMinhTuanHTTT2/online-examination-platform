@@ -7,4 +7,6 @@ import com.tuan.exam.dto.response.JwtAuthResponse;
 public interface AuthService {
     JwtAuthResponse login(LoginRequest loginRequest);
     String register(RegisterRequest registerRequest);
+    // Thêm hàm lấy thông tin user động
+    Object getCurrentUserProfile(String usernameOrEmail);
 }

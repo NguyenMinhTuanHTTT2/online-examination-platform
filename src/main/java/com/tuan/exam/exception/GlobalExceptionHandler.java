@@ -91,6 +91,7 @@ public class GlobalExceptionHandler {
     // 6. Catch-all: Xử lý tất cả các lỗi không xác định còn lại (500 Internal Server Error)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex) {
+        ex.printStackTrace();
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .message("Đã xảy ra lỗi hệ thống nội bộ. Vui lòng thử lại sau!")
